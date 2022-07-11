@@ -34,7 +34,9 @@ class FPN(nn.Module):
         outputs = []
 
         last_inner = self.inner_blocks[-1](x[-1])
-        outputs.append(self.layer_blocks[-1](last_inner))
+        P5 = self.layer_blocks[-1](last_inner)
+        P6 = F.max_pool2d(P5, kernel_size=3, stride=2, padding=1)
+        outputs += [P6, P5]
 
         for feature, inner, layer in zip(
             x[-2::-1], self.inner_blocks[-2::-1], self.layer_blocks[-2::-1]
