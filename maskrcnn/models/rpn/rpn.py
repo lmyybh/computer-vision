@@ -13,7 +13,7 @@ class RPNHead(nn.Module):
         )
 
         # 1*1 卷积相当于全连接
-        self.cls_logits = nn.Conv2d(in_channels, num_anchors * 2, kernel_size=1)
+        self.cls_logits = nn.Conv2d(in_channels, num_anchors, kernel_size=1)
         self.bbox_pred = nn.Conv2d(in_channels, num_anchors * 4, kernel_size=1)
 
         for layer in [self.conv, self.cls_logits, self.bbox_pred]:
