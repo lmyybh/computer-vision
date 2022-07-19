@@ -11,6 +11,7 @@ class AnchorGenerator(torch.nn.Module):
         sizes=[32, 64, 128, 256, 512],
         ratios=[0.5, 1, 2],
     ):
+        super(AnchorGenerator, self).__init__()
         self.strides = strides
         # 每个尺寸特征图上的 anchors 组成的列表
         self.cell_anchors = generate_anchors(sizes, ratios)
@@ -31,7 +32,7 @@ class AnchorGenerator(torch.nn.Module):
             shifts_x = torch.arange(0, w * stride, step=stride, dtype=torch.float32)
             shifts_y = torch.arange(0, h * stride, step=stride, dtype=torch.float32)
             # 注意对于图片来讲, y是行, x是列
-            shifts_y, shifts_x = torch.meshgrid(shifts_y, shifts_x)
+            shifts_y, shifts_x = torch.meshgrid(shifts_y, shifts_x, indexing='ij')
             shifts_x = shifts_x.flatten()
             shifts_y = shifts_y.flatten()
 
