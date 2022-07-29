@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from .anchor_generator import AnchorGenerator
+from .inference import make_rpn_post_processor
 
 
 class RPNHead(nn.Module):
@@ -33,11 +34,12 @@ class RPNHead(nn.Module):
 class RPN(nn.Module):
     def __init__(
         self,
+        cfg,
         in_channels,
         strides=[4, 8, 16, 32, 64],
         sizes=[32, 64, 128, 256, 512],
         ratios=[0.5, 1, 2],
-        training=True
+        training=True,
     ):
         super(RPN, self).__init__()
         self.anchor_generator = AnchorGenerator(strides, sizes, ratios)
@@ -46,27 +48,31 @@ class RPN(nn.Module):
         )
 
         self.training = training
+        self.rpn_post_processor = make_rpn_post_processor(cfg, is_train=training)
 
     def forward(self, images, features, targets=None):
         logits, bbox_reg = self.head(features)
         anchors = self.anchor_generator(images, features)
 
-        return logits, bbox_reg, anchors
-
-        # if self.training:
-        #     return self._forward_train(anchors, logits, bbox_reg, targets)
-        # else:
-        #     return self._forward_test(anchors, logits, bbox_reg)
+        if self.training:
+            return self._forward_train(anchors, logits, bbox_reg, targets)
+        else:
+            return self._forward_test(anchors, logits, bbox_reg)
 
     def _forward_train(self, anchors, logits, bbox_reg, targets):
-        pass
+        with torch.no_grad():
+            # 说明 add_gt_proposals 没有用到
+            bboxes = self.rpn_post_processor(anchors, logits, bbox_reg, targets)
+        breakpoint()
 
     def _forward_test(self, anchors, logits, bbox_reg):
-        pass
+        boxes = self.box_selector_test(anchors, logits, bbox_reg)
+        return boxes, {}
 
 
 def build_rpn(cfg):
     return RPN(
+        cfg,
         cfg["MODEL"]["FPN"]["OUT_CHANNELS"],
         strides=cfg["MODEL"]["RPN"]["ANCHORS_STRIDES"],
         sizes=cfg["MODEL"]["RPN"]["ANCHORS_SIZES"],

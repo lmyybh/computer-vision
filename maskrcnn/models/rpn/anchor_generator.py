@@ -32,7 +32,7 @@ class AnchorGenerator(torch.nn.Module):
             shifts_x = torch.arange(0, w * stride, step=stride, dtype=torch.float32)
             shifts_y = torch.arange(0, h * stride, step=stride, dtype=torch.float32)
             # 注意对于图片来讲, y是行, x是列
-            shifts_y, shifts_x = torch.meshgrid(shifts_y, shifts_x, indexing='ij')
+            shifts_y, shifts_x = torch.meshgrid(shifts_y, shifts_x, indexing="ij")
             shifts_x = shifts_x.flatten()
             shifts_y = shifts_y.flatten()
 
@@ -46,6 +46,7 @@ class AnchorGenerator(torch.nn.Module):
         return anchors
 
     def forward(self, image_list, features):
+        device = features[0].device
         grid_sizes = [f.shape[-2:] for f in features]
         all_features_anchors = self.grid_anchors(grid_sizes)
         anchors = []
@@ -53,7 +54,7 @@ class AnchorGenerator(torch.nn.Module):
             anchors_in_one_image = []
             for one_feature_anchors in all_features_anchors:
                 anchors_in_one_image.append(
-                    BoxList(one_feature_anchors, (img_w, img_h), mode="xyxy")
+                    BoxList(one_feature_anchors.to(device), (img_w, img_h), mode="xyxy")
                 )
             anchors.append(anchors_in_one_image)
         return anchors
