@@ -9,6 +9,26 @@ class BoxCoder:
         self.weights = weights
         self.bbox_xform_clip = bbox_xform_clip
 
+    def encode(self, ref_boxes, proposals):
+        ex_widths = proposals[:, 2] - proposals[:, 0] + 1
+        ex_heights = proposals[:, 3] - proposals[:, 1] + 1
+        ex_ctr_x = proposals[:, 0] + 0.5 * ex_widths
+        ex_ctr_y = proposals[:, 1] + 0.5 * ex_heights
+
+        gt_widths = ref_boxes[:, 2] - ref_boxes[:, 0] + 1
+        gt_heights = ref_boxes[:, 3] - ref_boxes[:, 1] + 1
+        gt_ctr_x = ref_boxes[:, 0] + 0.5 * gt_widths
+        gt_ctr_y = ref_boxes[:, 1] + 0.5 * gt_heights
+
+        wx, wy, ww, wh = self.weights
+
+        target_dx = wx * (gt_ctr_x - ex_ctr_x) / ex_widths
+        target_dy = wy * (gt_ctr_y - ex_ctr_y) / ex_heights
+        target_dw = ww * torch.log(gt_widths / ex_widths)
+        target_dh = wh * torch.log(gt_heights / ex_heights)
+
+        return torch.stack((target_dx, target_dy, target_dw, target_dh), dim=1)
+
     def decode(self, anchors, bbox_reg):
         anchors = anchors.to(bbox_reg.dtype)
 

@@ -65,7 +65,6 @@ class RPNPostProcessor(nn.Module):
 
         proposals = self.box_coder.decode(anchors.view(-1, 4), bbox_reg.view(-1, 4))
         proposals = proposals.view(N, -1, 4)
-
         result = []
         for proposal, score, image_size in zip(proposals, logits, image_sizes):
             boxlist = BoxList(proposal, image_size, score, mode="xyxy")

@@ -4,6 +4,7 @@ import torch.nn.functional as F
 
 from .anchor_generator import AnchorGenerator
 from .inference import make_rpn_post_processor
+from .loss import make_rpn_loss_evaluator
 
 
 class RPNHead(nn.Module):
@@ -39,7 +40,6 @@ class RPN(nn.Module):
         strides=[4, 8, 16, 32, 64],
         sizes=[32, 64, 128, 256, 512],
         ratios=[0.5, 1, 2],
-        training=True,
     ):
         super(RPN, self).__init__()
         self.anchor_generator = AnchorGenerator(strides, sizes, ratios)
@@ -47,8 +47,11 @@ class RPN(nn.Module):
             in_channels, self.anchor_generator.num_anchors_per_location()
         )
 
-        self.training = training
-        self.rpn_post_processor = make_rpn_post_processor(cfg, is_train=training)
+        # 不能借助 self.training 赋值 is_train，否则无法进行训练模式切换
+        self.rpn_post_processor_train = make_rpn_post_processor(cfg, is_train=True)
+        self.rpn_post_processor_test = make_rpn_post_processor(cfg, is_train=False)
+
+        self.loss_evaluator = make_rpn_loss_evaluator(cfg)
 
     def forward(self, images, features, targets=None):
         logits, bbox_reg = self.head(features)
@@ -62,11 +65,20 @@ class RPN(nn.Module):
     def _forward_train(self, anchors, logits, bbox_reg, targets):
         with torch.no_grad():
             # 说明 add_gt_proposals 没有用到
-            bboxes = self.rpn_post_processor(anchors, logits, bbox_reg, targets)
-        breakpoint()
+            boxes = self.rpn_post_processor_train(anchors, logits, bbox_reg, targets)
+
+        logits_loss, rpn_bbox_reg_loss = self.loss_evaluator(
+            anchors, logits, bbox_reg, targets
+        )
+
+        losses = {"logits_loss": logits_loss, "rpn_bbox_reg_loss": rpn_bbox_reg_loss}
+
+        return boxes, losses
 
     def _forward_test(self, anchors, logits, bbox_reg):
-        boxes = self.box_selector_test(anchors, logits, bbox_reg)
+        # 不加这句会报错
+        with torch.no_grad():
+            boxes = self.rpn_post_processor_test(anchors, logits, bbox_reg)
         return boxes, {}
 
 

@@ -50,6 +50,14 @@ class BoxList(object):
 
         return bbox.convert(mode=self.mode)
 
+    def area(self):
+        box = self.bbox
+        if self.mode == "xyxy":
+            area = (box[:, 2] - box[:, 0] + 1) * (box[:, 3] - box[:, 1] + 1)
+        else:
+            area = box[:, 2] * box[:, 3]
+        return area
+
     def to(self, device):
         return BoxList(self.bbox.to(device), self.size, self.scores, self.mode)
 
@@ -120,6 +128,25 @@ def cat_boxlists(boxlists):
     return BoxList(cat_bbox, image_size, cat_scores, mode)
 
 
+def boxlist_iou(boxlist1, boxlist2):
+    assert boxlist1.size == boxlist2.size
+
+    boxlist1 = boxlist1.convert("xyxy")
+    boxlist2 = boxlist2.convert("xyxy")
+
+    N, M = len(boxlist1), len(boxlist2)
+    area1, area2 = boxlist1.area(), boxlist2.area()
+    box1, box2 = boxlist1.bbox, boxlist2.bbox
+
+    lt = torch.max(box1[:, None, :2], box2[:, :2])
+    rb = torch.min(box1[:, None, 2:], box2[:, 2:])
+
+    wh = (rb - lt + 1).clamp(min=0)
+    inter = wh[:, :, 0] * wh[:, :, 1]
+
+    return inter / (area1[:, None] + area2 - inter)
+
+
 class Mask(object):
     def __init__(self, mask):
         device = mask.device if isinstance(mask, torch.Tensor) else torch.device("cpu")
@@ -132,6 +159,9 @@ class Mask(object):
 
     def to(self, device):
         return Mask(self.mask.to(device))
+
+    def __getitem__(self, index):
+        return Mask(self.mask[index])
 
 
 class Target(object):
@@ -161,3 +191,9 @@ class Target(object):
             else:
                 new_target.add_field(key, self.get_field(key))
         return new_target
+
+    def __getitem__(self, index):
+        target = Target()
+        for k, v in self.fields.items():
+            target.add_field(k, v[index])
+        return target

@@ -11,5 +11,6 @@ def build_backbone(cfg):
         in_channels_list=cfg["MODEL"]["FPN"]["IN_CHANNELS_LIST"],
         out_channels=cfg["MODEL"]["FPN"]["OUT_CHANNELS"],
     )
-
-    return nn.Sequential(OrderedDict([("body", body), ("fpn", fpn)]))
+    backbone = nn.Sequential(OrderedDict([("body", body), ("fpn", fpn)]))
+    backbone.out_channels = cfg["MODEL"]["FPN"]["OUT_CHANNELS"]
+    return backbone

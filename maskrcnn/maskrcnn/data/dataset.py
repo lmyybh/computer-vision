@@ -7,7 +7,7 @@ from torch.utils.data import Dataset
 from pycocotools.coco import COCO
 
 from .target import Target, BoxList, Mask
-from .transforms import Compose, Resize, ToTensor
+from .transforms import Compose, Resize, ToTensor, Normalize, ColorJitter
 
 
 class CocoDataset(Dataset):
@@ -19,6 +19,7 @@ class CocoDataset(Dataset):
             for img_id in sorted(list(self.coco.imgs.keys()))
             if self.has_valid_annotation(img_id)
         ]
+        self.continuous_labels = {v: i + 1 for i, v in enumerate(self.coco.getCatIds())}
         self.transforms = transforms
 
     def __len__(self):
@@ -27,7 +28,7 @@ class CocoDataset(Dataset):
     def get_image(self, img_id):
         filename = self.coco.loadImgs(img_id)[0]["file_name"]
         filepath = os.path.join(self.image_dir, filename)
-        return Image.open(filepath)
+        return Image.open(filepath).convert("RGB")
 
     def has_valid_annotation(self, img_id):
         anns = self.coco.loadAnns(self.coco.getAnnIds(imgIds=img_id))
@@ -53,6 +54,7 @@ class CocoDataset(Dataset):
             boxes.append(ann["bbox"])
             masks.append(self.coco.annToMask(ann))
         # to Tensor
+        labels = [self.continuous_labels[label] for label in labels]
         labels = torch.tensor(labels).float()
         boxes = torch.tensor(np.array(boxes)).float()
         masks = torch.tensor(np.stack(masks, axis=0)).float()
@@ -70,11 +72,24 @@ class CocoDataset(Dataset):
         return image, target
 
 
-def build_dataset(cfg):
+def build_dataset(cfg, is_train=True):
+    if is_train:
+        min_size = cfg["INPUT"]["MIN_SIZE_TRAIN"]
+        max_size = cfg["INPUT"]["MAX_SIZE_TRAIN"]
+    else:
+        min_size = cfg["INPUT"]["MIN_SIZE_TEST"]
+        max_size = cfg["INPUT"]["MAX_SIZE_TEST"]
+
+    normalize_transform = Normalize(
+        mean=cfg["INPUT"]["PIXEL_MEAN"],
+        std=cfg["INPUT"]["PIXEL_STD"],
+    )
+
     transforms_ = Compose(
         [
-            Resize(cfg["DATA"]["MIN_SIZE"], cfg["DATA"]["MAX_SIZE"]),
+            Resize(min_size, max_size),
             ToTensor(),
+            normalize_transform,
         ]
     )
 
