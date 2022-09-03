@@ -1,0 +1,5 @@
+[DATA]
+IMAGE_DIR_TRAIN = '/data1/cgl/dataset/coco2017/train2017'
+ANN_FILE_TRAIN = '/data1/cgl/dataset/coco2017/annotations/instances_train2017.json'
+IMAGE_DIR_VAL = '/data1/cgl/dataset/coco2017/val2017'
+ANN_FILE_VAL = '/data1/cgl/dataset/coco2017/annotations/instances_val2017.json'
