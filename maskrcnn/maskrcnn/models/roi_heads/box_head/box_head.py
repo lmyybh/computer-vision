@@ -35,8 +35,7 @@ class ROIBoxHead(nn.Module):
         cls_logits, bbox_reg = self.predictor(x)
 
         if not self.training:
-            with torch.no_grad():
-                targets = self.post_processor(cls_logits, bbox_reg, proposals)
+            targets = self.post_processor(cls_logits, bbox_reg, proposals)
             return x, targets, {}
 
         loss_classifier, loss_bbox_reg = self.loss_evaluator([cls_logits], [bbox_reg])

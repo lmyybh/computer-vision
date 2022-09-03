@@ -62,6 +62,7 @@ class BoxList(object):
         return BoxList(self.bbox.to(device), self.size, self.scores, self.mode)
 
     def clip_to_image(self, remove_empty=True):
+        assert self.mode == "xyxy"
         self.bbox[:, 0].clamp_(min=0, max=self.size[0] - 1)
         self.bbox[:, 1].clamp_(min=0, max=self.size[1] - 1)
         self.bbox[:, 2].clamp_(min=0, max=self.size[0] - 1)

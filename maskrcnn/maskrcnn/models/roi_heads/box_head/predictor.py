@@ -13,6 +13,9 @@ class FPNPredictor(nn.Module):
         nn.init.constant_(self.bbox_pred.bias, 0)
     
     def forward(self, x):
+        if x.ndimension() == 4:
+            assert list(x.shape[2:]) == [1, 1]
+            x = x.view(x.size(0), -1)
         scores = self.cls_score(x)
         bbox_reg = self.bbox_pred(x)
 

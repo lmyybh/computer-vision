@@ -9,7 +9,7 @@ from maskrcnn.data.target import Target, BoxList, cat_boxlists
 class PostProcessor(nn.Module):
     def __init__(
         self,
-        score_threshold=0.5,
+        score_threshold=0.05,
         nms=0.5,
         detections_per_img=100,
         box_coder=None,

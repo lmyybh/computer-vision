@@ -53,7 +53,7 @@ CLS_AGNOSTIC_BBOX_REG = false
         BBOX_REG_WEIGHTS = [10.0, 10.0, 5.0, 5.0]
         BATCH_SIZE_PER_IMAGE = 512
         POSITIVE_FRACTION = 0.25
-        SCORE_THRESHOLD = 0.05
+        SCORE_THRESHOLD = 0.85
         NMS = 0.5
         DETECTIONS_PER_IMG = 100
         

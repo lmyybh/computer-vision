@@ -23,7 +23,7 @@ class BoxHeadLoss(nn.Module):
     def match_targets_to_proposals(self, proposal, target):
         match_quality_matrix = boxlist_iou(target.get_field("bboxes"), proposal)
         matched_idxs = self.matcher(match_quality_matrix)
-        matched_targets = target[matched_idxs.clamp(min=0)]
+        matched_targets = target[matched_idxs.clamp(min=0)]  # 这里把 IOU 低的框都匹配到了第一个真实框
         return matched_targets, matched_idxs
 
     def prepare_targets(self, proposals, targets):

@@ -6,7 +6,7 @@ class Compose(object):
     def __init__(self, transforms):
         self.transforms = transforms
 
-    def __call__(self, image, target):
+    def __call__(self, image, target=None):
         for t in self.transforms:
             image, target = t(image, target)
         return image, target
@@ -38,15 +38,16 @@ class Resize(object):
             ow = int(oh * w / h)
         return (ow, oh)
 
-    def __call__(self, image, target):
+    def __call__(self, image, target=None):
         ow, oh = self.get_size(image.size)
         image = TF.resize(image, (oh, ow))
-        target = target.resize((ow, oh))
+        if target:
+            target = target.resize((ow, oh))
         return image, target
 
 
 class ToTensor(object):
-    def __call__(self, image, target):
+    def __call__(self, image, target=None):
         image = TF.to_tensor(image)
         return image, target
 
@@ -58,8 +59,6 @@ class Normalize(object):
 
     def __call__(self, image, target=None):
         image = TF.normalize(image, mean=self.mean, std=self.std)
-        if target is None:
-            return image
         return image, target
 
 
