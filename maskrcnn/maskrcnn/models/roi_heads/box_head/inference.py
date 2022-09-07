@@ -35,7 +35,7 @@ class PostProcessor(nn.Module):
             bbox_reg = bbox_reg[:, -4:]
 
         proposals = self.box_coder.decode(
-            bbox_reg.view(sum(boxes_per_image), -1), concat_boxes
+            concat_boxes, bbox_reg.view(sum(boxes_per_image), -1)
         )
 
         if self.cls_agnostic_bbox_reg:

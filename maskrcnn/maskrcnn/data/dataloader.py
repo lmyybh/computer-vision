@@ -2,6 +2,8 @@ from math import ceil
 import torch
 from torch.utils.data import DataLoader
 
+from .dataset import build_dataset
+
 
 class ImageList(object):
     def __init__(self, tensors, image_sizes):
@@ -47,11 +49,11 @@ class BatchCollator(object):
         return images, targets
 
 
-def build_dataloader(dataset, cfg, is_train):
+def build_dataloader(cfg, is_train=True):
     shuffle = is_train
 
     return DataLoader(
-        dataset,
+        build_dataset(cfg, is_train=is_train),
         batch_size=cfg["DATA"]["BATCH_SIZE"],
         collate_fn=BatchCollator(cfg["DATA"]["SIZE_DIVISIBLE"]),
         shuffle=shuffle,

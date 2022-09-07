@@ -56,7 +56,7 @@ class BoxCoder:
         pred_w = torch.exp(dw) * widths
         pred_h = torch.exp(dh) * heights
 
-        pred_boxes = torch.zeros_like(anchors)
+        pred_boxes = torch.zeros_like(bbox_reg)
         pred_boxes[:, 0::4] = pred_ctr_x - 0.5 * pred_w
         pred_boxes[:, 1::4] = pred_ctr_y - 0.5 * pred_h
         pred_boxes[:, 2::4] = pred_ctr_x + 0.5 * pred_w - 1

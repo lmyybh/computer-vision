@@ -63,10 +63,14 @@ class BoxList(object):
 
     def clip_to_image(self, remove_empty=True):
         assert self.mode == "xyxy"
-        self.bbox[:, 0].clamp_(min=0, max=self.size[0] - 1)
-        self.bbox[:, 1].clamp_(min=0, max=self.size[1] - 1)
-        self.bbox[:, 2].clamp_(min=0, max=self.size[0] - 1)
-        self.bbox[:, 3].clamp_(min=0, max=self.size[1] - 1)
+        bbox = torch.zeros_like(self.bbox)
+
+        bbox[:, 0] = torch.clamp(self.bbox[:, 0], min=0, max=self.size[0] - 1)
+        bbox[:, 1] = torch.clamp(self.bbox[:, 1], min=0, max=self.size[1] - 1)
+        bbox[:, 2] = torch.clamp(self.bbox[:, 2], min=0, max=self.size[0] - 1)
+        bbox[:, 3] = torch.clamp(self.bbox[:, 3], min=0, max=self.size[1] - 1)
+
+        self.bbox = bbox
 
         if remove_empty:
             box = self.bbox

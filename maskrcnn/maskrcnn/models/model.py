@@ -13,14 +13,32 @@ class MaskRCNN(nn.Module):
         self.rpn = build_rpn(cfg)
         self.roi_heads = build_roi_heads(cfg, self.backbone.out_channels)
 
-    def forward(self, images, targets=None):
+    def forward(self, images, targets=None, train_mode=2):
+        assert train_mode in [0, 1, 2]
+
         features = self.backbone(images.tensors)
-        proposals, proposals_losses = self.rpn(images, features, targets)
-        x, detections, detector_losses = self.roi_heads(features, proposals, targets)
-        if self.training:
-            losses = {}
-            losses.update(proposals_losses)
-            losses.update(detector_losses)
-            return losses
+
+        if train_mode == 0:
+            proposals, proposals_losses = self.rpn(images, features, targets)
+            with torch.no_grad():
+                x, detections, detector_losses = self.roi_heads(
+                    features, proposals, targets
+                )
+        elif train_mode == 1:
+            with torch.no_grad():
+                proposals, proposals_losses = self.rpn(images, features, targets)
+
+            x, detections, detector_losses = self.roi_heads(
+                features, proposals, targets
+            )
         else:
-            return detections
+            proposals, proposals_losses = self.rpn(images, features, targets)
+            x, detections, detector_losses = self.roi_heads(
+                features, proposals, targets
+            )
+
+        loss_dict = {}
+        loss_dict.update(proposals_losses)
+        loss_dict.update(detector_losses)
+
+        return {"detections": detections, "loss_dict": loss_dict}

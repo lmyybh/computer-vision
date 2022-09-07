@@ -76,9 +76,13 @@ def build_dataset(cfg, is_train=True):
     if is_train:
         min_size = cfg["INPUT"]["MIN_SIZE_TRAIN"]
         max_size = cfg["INPUT"]["MAX_SIZE_TRAIN"]
+        image_dir = cfg["DATA"]["IMAGE_DIR_TRAIN"]
+        ann_file = cfg["DATA"]["ANN_FILE_TRAIN"]
     else:
         min_size = cfg["INPUT"]["MIN_SIZE_TEST"]
         max_size = cfg["INPUT"]["MAX_SIZE_TEST"]
+        image_dir = cfg["DATA"]["IMAGE_DIR_TEST"]
+        ann_file = cfg["DATA"]["ANN_FILE_TEST"]
 
     normalize_transform = Normalize(
         mean=cfg["INPUT"]["PIXEL_MEAN"],
@@ -94,7 +98,7 @@ def build_dataset(cfg, is_train=True):
     )
 
     return CocoDataset(
-        image_dir=cfg["DATA"]["IMAGE_DIR"],
-        ann_file=cfg["DATA"]["ANN_FILE"],
+        image_dir=image_dir,
+        ann_file=ann_file,
         transforms=transforms_,
     )
