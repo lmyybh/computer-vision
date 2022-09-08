@@ -26,24 +26,25 @@ class Builder:
 
     def make_optimizer(self, model):
         return torch.optim.SGD(
-            [{"params": model.parameters(), "initial_lr": 0.01}],
+            [{"params": model.parameters(), "initial_lr": 0.001}],
             lr=self.cfg["SOLVER"]["INITIAL_LR"],
             momentum=0.9,
             weight_decay=0.0005,
         )
 
     def make_lr_scheduler(self, optimizer):
-        return torch.optim.lr_scheduler.CosineAnnealingLR(
+        return torch.optim.lr_scheduler.StepLR(
             optimizer,
-            self.num_epoches,
-            eta_min=0,
+            step_size=10,
+            gamma=0.5,
             last_epoch=self.start_epoch - 1,
             verbose=False,
         )
 
     def make_output_dir(self, subdirs=["checkpoints"]):
         output_dir = os.path.join(
-            self.cfg["OUTPUT"], time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime())
+            self.cfg["OUTPUT"],
+            time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime()),
         )
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
@@ -84,7 +85,7 @@ class Trainer:
         torch.save(self.model.state_dict(), filename)
 
     def train(self, dataloader, train_mode=0):
-        self.model = self.model.train()
+        self.model.train()
 
         num_iters = len(dataloader)
         a, b = num_iters // self.num_logs, num_iters % self.num_logs
@@ -113,7 +114,7 @@ class Trainer:
         return losses.item(), {k: v.item() for k, v in loss_dict.items()}
 
     def test(self, dataloader):
-        self.model = self.model.eval()
+        self.model.eval()
 
         mean_loss_dict = {}
         mean_losses = 0
@@ -121,22 +122,19 @@ class Trainer:
         for i, (images, targets) in enumerate(dataloader):
             images = images.to(self.device)
             targets = [target.to(self.device) for target in targets]
-            result = self.model(images, targets, train_mode=2)
-            loss_dict = result["loss_dict"]
+            loss_dict = self.model(images, targets, train_mode=2)["loss_dict"]
             for k, v in loss_dict.items():
                 if k not in mean_loss_dict:
-                    mean_loss_dict[k] = v
+                    mean_loss_dict[k] = v.item()
                 else:
-                    mean_loss_dict[k] += v
+                    mean_loss_dict[k] += v.item()
 
-            mean_losses += sum(loss for loss in loss_dict.values())
-        self.lr_scheduler.step()
-
+            mean_losses += sum(loss.item() for loss in loss_dict.values())
         n = len(dataloader)
-        mean_loss_dict = {k: v.item() / n for k, v in mean_loss_dict.items()}
+        mean_loss_dict = {k: v / n for k, v in mean_loss_dict.items()}
         mean_losses /= n
 
-        return mean_losses.item(), mean_loss_dict
+        return mean_losses, mean_loss_dict
 
     def train_and_test(
         self,
@@ -145,7 +143,7 @@ class Trainer:
         num_epoches,
         start_epoch=0,
         checkpoint_per_epoches=1,
-        mode_steps=[0, 1],
+        mode_steps=[5, 10],
     ):
         self.logger.info("Start training")
 

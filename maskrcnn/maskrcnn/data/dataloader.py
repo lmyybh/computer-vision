@@ -51,10 +51,12 @@ class BatchCollator(object):
 
 def build_dataloader(cfg, is_train=True):
     shuffle = is_train
-
+    batch_size = (
+        cfg["DATA"]["BATCH_SIZE_TRAIN"] if is_train else cfg["DATA"]["BATCH_SIZE_TEST"]
+    )
     return DataLoader(
         build_dataset(cfg, is_train=is_train),
-        batch_size=cfg["DATA"]["BATCH_SIZE"],
+        batch_size=batch_size,
         collate_fn=BatchCollator(cfg["DATA"]["SIZE_DIVISIBLE"]),
         shuffle=shuffle,
         num_workers=cfg["DATA"]["NUM_WORKERS"],

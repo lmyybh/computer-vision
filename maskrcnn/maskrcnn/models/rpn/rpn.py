@@ -57,14 +57,13 @@ class RPN(nn.Module):
         logits, bbox_reg = self.head(features)
         anchors = self.anchor_generator(images, features)
 
-        if self.training:
+        if targets:
             return self._forward_train(anchors, logits, bbox_reg, targets)
         else:
             return self._forward_test(anchors, logits, bbox_reg)
 
     def _forward_train(self, anchors, logits, bbox_reg, targets):
         with torch.no_grad():
-            # 说明 add_gt_proposals 没有用到
             boxes = self.rpn_post_processor_train(anchors, logits, bbox_reg, targets)
 
         logits_loss, rpn_bbox_reg_loss = self.loss_evaluator(
