@@ -4,23 +4,10 @@ from torch.utils.data import DataLoader
 from .coco_dataset import build_dataset
 
 
-class Target:
-    def __init__(self, boxlists):
-        self.boxlists = boxlists
-
-    def to(self, device):
-        self.boxlists = [b.to(device) for b in self.boxlists]
-        return self
-
-    def __getitem__(self, idx):
-        return self.boxlists[idx]
-
-
 def batch_collator(batch):
-    images, boxlists = list(zip(*batch))
+    images, boxmgrs = list(zip(*batch))
     images = torch.stack(images, dim=0)
-    targets = Target(boxlists)
-    return images, targets
+    return images, boxmgrs
 
 
 def build_dataloader(cfg, is_train=True):

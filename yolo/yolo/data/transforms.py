@@ -5,18 +5,18 @@ class Compose:
     def __init__(self, transforms):
         self.transforms = transforms
 
-    def __call__(self, image, boxlist=None):
+    def __call__(self, image, boxmgr=None):
         for t in self.transforms:
-            image, boxlist = t(image, boxlist)
-        return image, boxlist
+            image, boxmgr = t(image, boxmgr)
+        return image, boxmgr
 
 
 class Resize:
     def __init__(self, size):
         self.size = size
 
-    def __call__(self, image, boxlist=None):
+    def __call__(self, image, boxmgr=None):
         image = F.resize(image, self.size)
-        if boxlist:
-            boxlist = boxlist.resize(list(self.size)[::-1])
-        return image, boxlist
+        if boxmgr:
+            boxmgr = boxmgr.resize(list(self.size)[::-1])
+        return image, boxmgr

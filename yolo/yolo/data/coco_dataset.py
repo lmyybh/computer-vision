@@ -6,7 +6,7 @@ from torch.utils.data import Dataset
 from torchvision.transforms.functional import to_tensor
 from pycocotools.coco import COCO
 
-from .boxlist import BoxList
+from .boxmanager import BoxManager
 from .transforms import Compose, Resize
 
 
@@ -65,13 +65,15 @@ class CocoDataset(Dataset):
         labels = [self.continuous_labels[label] for label in labels]
         labels = torch.tensor(labels).float()
         boxes = torch.tensor(np.array(boxes)).float()
-        info = torch.hstack((boxes, labels.reshape(-1, 1)))
-        boxlist = BoxList(info, image.shape[1:], "xywh").convert("xyxy")
+
+        boxmgr = BoxManager(
+            boxes, image.shape[1:], labels, torch.ones_like(labels), "xywh"
+        ).convert("xyxy")
 
         if self.transforms is not None:
-            image, boxlist = self.transforms(image, boxlist)
+            image, boxmgr = self.transforms(image, boxmgr)
 
-        return image, boxlist
+        return image, boxmgr
 
 
 def build_dataset(cfg, is_train=True):
@@ -82,6 +84,6 @@ def build_dataset(cfg, is_train=True):
         image_dir = cfg["DATA"]["IMAGE_DIR_VAL"]
         ann_file = cfg["DATA"]["ANN_FILE_VAL"]
 
-    transforms = Compose([Resize(size=(448, 448))])
+    transforms = Compose([Resize(size=(416, 416))])
 
     return CocoDataset(image_dir, ann_file, transforms=transforms)

@@ -54,6 +54,8 @@ def OutConv(in_num, out_num):
 class Detector(nn.Module):
     def __init__(self, cfg, num_boxes=3, num_classes=20):
         super().__init__()
+        self.num_boxes = num_boxes
+
         self.backbone = build_backbone(cfg)
 
         out_nums = num_boxes * (5 + num_classes)
@@ -76,8 +78,21 @@ class Detector(nn.Module):
         C1 = self.convset_c1(torch.cat([features[1], self.convup_c21(C2)], dim=1))
         C0 = self.convset_c0(torch.cat([features[0], self.convup_c10(C1)], dim=1))
 
-        return [self.outconv_c0(C0), self.outconv_c1(C1), self.outconv_c2(C2)]
+        # [52*52, 26*26, 13*13]
+        C0 = self.outconv_c0(C0).permute(0, 2, 3, 1)
+        C1 = self.outconv_c1(C1).permute(0, 2, 3, 1)
+        C2 = self.outconv_c2(C2).permute(0, 2, 3, 1)
+
+        C0 = C0.reshape(C0.shape[0], C0.shape[1], C0.shape[2], self.num_boxes, -1)
+        C1 = C1.reshape(C1.shape[0], C1.shape[1], C1.shape[2], self.num_boxes, -1)
+        C2 = C2.reshape(C2.shape[0], C2.shape[1], C2.shape[2], self.num_boxes, -1)
+
+        return [C0, C1, C2]
 
 
 def build_detector(cfg):
-    return Detector(cfg)
+    return Detector(
+        cfg,
+        num_boxes=cfg["MODEL"]["NUM_BOXES"],
+        num_classes=cfg["MODEL"]["NUM_CLASSES"],
+    )
