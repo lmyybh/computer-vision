@@ -44,7 +44,7 @@ class ROIBoxHead(nn.Module):
         else:
             loss_dict = {}
 
-        if postprocess:
+        if not targets or postprocess:
             proposal_targets = self.post_processor(cls_logits, bbox_reg, proposals)
 
         return x, proposal_targets, loss_dict

@@ -56,26 +56,35 @@ def mark_images(img_paths, boxlists, out_dir):
         _, img_name = os.path.split(img_path)
         img = cv2.imread(img_path)
         for box in boxlist.bbox:
-            box = box.cpu().numpy().astype(int)
-            img = cv2.rectangle(img, box[:2], box[2:], (0, 0, 255), 1)
-            cv2.imwrite(os.path.join(out_dir, f"marked_{img_name}"), img)
+            box = box.detach().cpu().numpy().astype(int)
+            img = cv2.rectangle(img, box[:2], box[2:], (0, 0, 255), 2)
+        marked_img_path = os.path.join(out_dir, f"marked_{img_name}")
+        cv2.imwrite(marked_img_path, img)
+        print(f"write {marked_img_path}")
 
 
 # config
 cfg = toml.load(
     "/home/cgl/projects/computer-vision/maskrcnn/maskrcnn/configs/config.toml"
 )
-MODEL_PATH = "/data1/cgl/tasks/coco_box/2022-08-20 15:44:04/checkpoints/epoch_49.pt"
+MODEL_PATH = "/data1/cgl/tasks/coco_box/2022-09-13-17-20-56/checkpoints/epoch_12.pt"
 
-device = torch.device(cfg["TRAIN"]["DEVICE"])
+device = torch.device("cuda:0")
 model = build_model(cfg, MODEL_PATH, device)
 
 
-img_paths = ["test.jpg"]
+img_paths = [
+    "test.jpg",
+    "/data1/cgl/dataset/coco2017/val2017/000000083113.jpg",
+    "/data1/cgl/dataset/coco2017/val2017/000000083172.jpg",
+    "/data1/cgl/dataset/coco2017/val2017/000000083531.jpg",
+    "/data1/cgl/dataset/coco2017/val2017/000000083540.jpg",
+    "/data1/cgl/dataset/coco2017/val2017/000000084031.jpg",
+]
 imgs = preprocess_images(img_paths, cfg, device)
 
-detections = model(imgs)
-breakpoint()
+detections = model(imgs)["detections"]
+
 mark_images(
     img_paths, [detection.get_field("bboxes") for detection in detections], "./output"
 )

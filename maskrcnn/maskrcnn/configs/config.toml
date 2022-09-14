@@ -2,11 +2,11 @@ OUTPUT = "/data1/cgl/tasks/coco_box"
 
 [TRAIN]
 DEVICE = "cuda:3"
-START_EPOCH = 3
+START_EPOCH = 11
 NUM_EPOCHES = 50
 NUM_LOGS_PER_EPOCH = 10
 CHECKPOINT_PER_EPOCHES = 1
-PRETRAINED_WEIGHTS_PATH = '/data1/cgl/tasks/coco_box/2022-09-07-23-59-36/checkpoints/epoch_2.pt'
+PRETRAINED_WEIGHTS_PATH = '/data1/cgl/tasks/coco_box/2022-09-08-15-06-53/checkpoints/epoch_10.pt'
 
 [INPUT]
 MIN_SIZE_TRAIN = 800
@@ -57,7 +57,7 @@ CLS_AGNOSTIC_BBOX_REG = false
         BBOX_REG_WEIGHTS = [10.0, 10.0, 5.0, 5.0]
         BATCH_SIZE_PER_IMAGE = 512
         POSITIVE_FRACTION = 0.25
-        SCORE_THRESHOLD = 0.8
+        SCORE_THRESHOLD = 0.1
         NMS = 0.5
         DETECTIONS_PER_IMG = 100
         

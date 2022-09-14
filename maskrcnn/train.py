@@ -25,21 +25,24 @@ class Builder:
         return model.to(self.device)
 
     def make_optimizer(self, model):
-        return torch.optim.SGD(
-            [{"params": model.parameters(), "initial_lr": 0.001}],
-            lr=self.cfg["SOLVER"]["INITIAL_LR"],
-            momentum=0.9,
-            weight_decay=0.0005,
+        # return torch.optim.SGD(
+        #     [{"params": model.parameters(), "initial_lr": 0.001}],
+        #     lr=self.cfg["SOLVER"]["INITIAL_LR"],
+        #     momentum=0.9,
+        #     weight_decay=0.0005,
+        # )
+        return torch.optim.Adam(
+            model.parameters(), amsgrad=True
         )
 
-    def make_lr_scheduler(self, optimizer):
-        return torch.optim.lr_scheduler.StepLR(
-            optimizer,
-            step_size=10,
-            gamma=0.5,
-            last_epoch=self.start_epoch - 1,
-            verbose=False,
-        )
+    # def make_lr_scheduler(self, optimizer):
+    #     return torch.optim.lr_scheduler.StepLR(
+    #         optimizer,
+    #         step_size=10,
+    #         gamma=0.5,
+    #         last_epoch=self.start_epoch - 1,
+    #         verbose=False,
+    #     )
 
     def make_output_dir(self, subdirs=["checkpoints"]):
         output_dir = os.path.join(
@@ -70,11 +73,12 @@ class Builder:
 
 class Trainer:
     def __init__(
-        self, model, optimizer, lr_scheduler, logger, device, output_dir, num_logs
+        self, model, optimizer, logger, device, output_dir, num_logs
+        # self, model, optimizer, lr_scheduler, logger, device, output_dir, num_logs
     ):
         self.model = model
         self.optimizer = optimizer
-        self.lr_scheduler = lr_scheduler
+        # self.lr_scheduler = lr_scheduler
         self.logger = logger
         self.device = device
         self.output_dir = output_dir
@@ -109,7 +113,7 @@ class Trainer:
             self.optimizer.zero_grad()
             losses.backward()
             self.optimizer.step()
-        self.lr_scheduler.step()
+        # self.lr_scheduler.step()
 
         return losses.item(), {k: v.item() for k, v in loss_dict.items()}
 
@@ -182,14 +186,15 @@ if __name__ == "__main__":
     builder = Builder(config_file)
     model = builder.build_model()
     optimizer = builder.make_optimizer(model)
-    lr_scheduler = builder.make_lr_scheduler(optimizer)
+    # lr_scheduler = builder.make_lr_scheduler(optimizer)
     output_dir = builder.make_output_dir()
     logger = builder.make_logger(output_dir)
     device = builder.device
     num_logs = builder.cfg["TRAIN"]["NUM_LOGS_PER_EPOCH"]
 
     trainer = Trainer(
-        model, optimizer, lr_scheduler, logger, builder.device, output_dir, num_logs
+        model, optimizer, logger, builder.device, output_dir, num_logs
+        # model, optimizer, lr_scheduler, logger, builder.device, output_dir, num_logs
     )
 
     logger.info(f"Output directory: {output_dir}")
