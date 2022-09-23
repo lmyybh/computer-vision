@@ -1,6 +1,5 @@
 import torch
-
-# from torchvision.ops import nms
+from torchvision.ops import box_iou
 
 
 class BoxManager(object):
@@ -146,7 +145,7 @@ def cat(datas, dim=-1):
 
     data_type = type(datas[0])
     assert data_type in {type(None), torch.Tensor}
-    assert all(isinstance(data, data_type) for data in data_type)
+    assert all(isinstance(data, data_type) for data in datas)
 
     if datas[0] is None:
         return None
@@ -163,14 +162,21 @@ def cat_boxmgrs(boxmgrs):
 
     assert all(isinstance(box, BoxManager) for box in boxmgrs)
 
-    image_size = boxmgrs[0].size
-    assert all(box.size == image_size for box in boxmgrs)
+    image_size = boxmgrs[0].img_size
+    assert all(box.img_size == image_size for box in boxmgrs)
 
     mode = boxmgrs[0].mode
     assert all(box.mode == mode for box in boxmgrs)
 
     bbox = cat([box.bbox for box in boxmgrs], dim=0)
-    labels = cat([box.labels for box in boxmgrs])
+    labels = cat([box.labels for box in boxmgrs], dim=0)
     scores = cat([box.scores for box in boxmgrs])
 
     return BoxManager(bbox, image_size, labels, scores, mode)
+
+
+def boxmgr_iou(boxmgr1, boxmgr2):
+    boxmgr1 = boxmgr1.convert("xyxy")
+    boxmgr2 = boxmgr2.convert("xyxy")
+
+    return box_iou(boxmgr1.bbox, boxmgr2.bbox)
