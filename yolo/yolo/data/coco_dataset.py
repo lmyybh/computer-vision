@@ -7,7 +7,7 @@ from torchvision.transforms.functional import to_tensor
 from pycocotools.coco import COCO
 
 from .boxmanager import BoxManager
-from .transforms import Compose, Resize
+from .transforms import Compose, Resize, Normalize
 
 
 class CocoDataset(Dataset):
@@ -19,7 +19,7 @@ class CocoDataset(Dataset):
             for img_id in sorted(list(self.coco.imgs.keys()))
             if self.has_valid_annotation(img_id)
         ]
-        self.continuous_labels = {v: i + 1 for i, v in enumerate(self.coco.getCatIds())}
+        self.continuous_labels = {v: i for i, v in enumerate(self.coco.getCatIds())}
         self.transforms = transforms
 
     def __len__(self):
@@ -84,6 +84,11 @@ def build_dataset(cfg, is_train=True):
         image_dir = cfg["DATA"]["IMAGE_DIR_VAL"]
         ann_file = cfg["DATA"]["ANN_FILE_VAL"]
 
-    transforms = Compose([Resize(size=(416, 416))])
+    transforms = Compose(
+        [
+            Normalize(mean=cfg["DATA"]["MEAN"], std=cfg["DATA"]["STD"]),
+            Resize(size=(416, 416)),
+        ]
+    )
 
     return CocoDataset(image_dir, ann_file, transforms=transforms)

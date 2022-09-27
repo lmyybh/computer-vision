@@ -20,3 +20,14 @@ class Resize:
         if boxmgr:
             boxmgr = boxmgr.resize(list(self.size)[::-1])
         return image, boxmgr
+
+
+class Normalize:
+    def __init__(self, mean, std):
+        self.mean = mean
+        self.std = std
+
+    def __call__(self, image, boxmgr=None):
+        image = F.normalize(image, mean=self.mean, std=self.std)
+
+        return image, boxmgr

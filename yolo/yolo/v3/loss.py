@@ -54,6 +54,7 @@ def positive_losses(
     features_indices = torch.div(anchors_indices, num_boxes, rounding_mode="floor")
     features_scales = torch.tensor(scales)[features_indices].to(device)
     features_sizes = torch.tensor(sizes)[features_indices].to(device)
+    num_boxes_every_features = torch.tensor(sizes).prod(dim=1) * num_boxes
 
     scaled_bboxes_cxy = target_boxmgr.bbox[:, :2] / features_scales.reshape(-1, 1)
     top_left_xy = torch.div(scaled_bboxes_cxy, 1, rounding_mode="floor")
@@ -66,30 +67,39 @@ def positive_losses(
 
     grid_idxs = torch.cat([top_left_xy, bboxes_indices.reshape(-1, 1)], dim=1)
 
+    # 计算属于第几个预测框
+    start_grids_idxs = torch.tensor(
+        [
+            num_boxes_every_features[:fi].sum() if fi > 0 else 0
+            for fi in features_indices
+        ]
+    ).to(device)
     positive_predict_bboxes_indices = (
-        grid_idxs[:, 0] * features_sizes[:, 1] + grid_idxs[:, 1]
-    ) * num_boxes + grid_idxs[:, 2]
+        start_grids_idxs
+        + (grid_idxs[:, 0] * features_sizes[:, 1] + grid_idxs[:, 1]) * num_boxes
+        + grid_idxs[:, 2]
+    )
     positive_predict_bboxes_indices = positive_predict_bboxes_indices.to(torch.long)
 
     pos_predicts = features_predicts[positive_predict_bboxes_indices]
     pred_txywh = torch.cat(
-        [pos_predicts[:, :2], torch.sigmoid(pos_predicts[:, 2:4])], dim=1
+        [torch.sigmoid(pos_predicts[:, :2]), pos_predicts[:, 2:4]], dim=1
     )
 
-    lbox = torch.sum(
+    lbox = torch.mean(
         (2 - gt_twh[:, 0][:, None] * gt_twh[:, 1][:, None])
         * (pred_txywh - gt_txywh) ** 2
     )
 
     lobj = F.binary_cross_entropy(
-        torch.sigmoid(pos_predicts[:, 4]), target_boxmgr.scores, reduction="sum"
+        torch.sigmoid(pos_predicts[:, 4]), target_boxmgr.scores, reduction="mean"
     )
     gt_classes = F.one_hot(
         target_boxmgr.labels.to(torch.long), num_classes=pos_predicts[:, 5:].shape[1]
     ).float()
 
     lcls = F.binary_cross_entropy(
-        torch.sigmoid(pos_predicts[:, 5:]), gt_classes, reduction="sum"
+        torch.sigmoid(pos_predicts[:, 5:]), gt_classes, reduction="mean"
     )
 
     return lbox, lobj, lcls, positive_predict_bboxes_indices
@@ -127,7 +137,7 @@ class YoloV3Loss(nn.Module):
             for i in range(0, len(self.all_anchors), num_anchors_per_feature)
         ]
 
-        loss = 0
+        losses_dict = {"lbox": 0, "lcls": 0, "lobj": 0, "lnoobj": 0}
         for multi_features, target_boxmgr in zip(batch_features, targets):
             boxmgrs = []
             features_predicts = []
@@ -152,27 +162,24 @@ class YoloV3Loss(nn.Module):
 
             # 负样本
             pt_max_ious = boxmgr_iou(predict_boxmgr, target_boxmgr).max(dim=1).values
-            noobj_indices = (
-                torch.argwhere(pt_max_ious < self.noobj_threshold)
-                .flatten()
-                .cpu()
-                .numpy()
-            )
+            noobj_indices = torch.argwhere(pt_max_ious < self.noobj_threshold).flatten()
+
             pos_set = set(positive_predict_bboxes_indices.cpu().numpy())
             noobj_indices = [i for i in noobj_indices if i not in pos_set]
 
             noobjs = predict_boxmgr[noobj_indices].scores
             lnoobj = F.binary_cross_entropy(
-                noobjs, torch.zeros_like(noobjs), reduction="sum"
+                noobjs, torch.zeros_like(noobjs), reduction="mean"
             )
 
-            loss += (
-                self.lambda_coord * lbox
-                + self.lambda_obj * lobj
-                + self.lambda_noobj * lnoobj
-                + self.lambda_class * lcls
-            )
-        return loss / len(batch_features)
+            losses_dict["lbox"] += self.lambda_coord * lbox
+            losses_dict["lcls"] += self.lambda_class * lcls
+            losses_dict["lobj"] += self.lambda_obj * lobj
+            losses_dict["lnoobj"] += self.lambda_noobj * lnoobj
+
+        losses_dict = {k: v / len(batch_features) for k, v in losses_dict.items()}
+
+        return losses_dict
 
 
 def build_yolov3_loss(cfg):
