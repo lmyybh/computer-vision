@@ -91,6 +91,10 @@ def positive_losses(
         * (pred_txywh - gt_txywh) ** 2
     )
 
+    # 会出现 -inf，暂未找到原因
+    if torch.isinf(lbox):
+        lbox = torch.zeros_like(lbox)
+
     lobj = F.binary_cross_entropy(
         torch.sigmoid(pos_predicts[:, 4]), target_boxmgr.scores, reduction="mean"
     )
